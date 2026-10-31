@@ -57,24 +57,24 @@ function renderDaily() {
   if(!state.hasPlan)return noPlanScreen();
   const events=currentEvents(),tasks=events.filter(t=>!['milestone','optional'].includes(t.kind));
   const optional=events.filter(t=>t.kind==='optional');
+  const visibleTasks=events.filter(t=>t.kind!=='milestone');
   const milestones=milestonesForPlan(planConfig()).filter(m=>m.day===state.day);
   const completed=tasks.filter(t=>state.done.has(t.occurrenceId)).length;
   const percent=tasks.length?completed/tasks.length*100:0;
   const groups=new Map();
-  for(const t of tasks){const key=formatTime(t.time);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(t);}
+  for(const t of visibleTasks){const key=formatTime(t.time);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(t);}
   const first=Math.max(0,state.day-2);
   return `<div class="hero"><p class="eyebrow">${formatDate(currentDate(),{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</p><div class="hero-row"><div><h2>Your daily care.</h2><p>${state.name?`One step at a time, ${esc(state.name.split(' ')[0])}.`:'One step at a time.'}</p></div><div class="progress-ring" style="background:conic-gradient(var(--lime) 0 ${percent}%,#425770 ${percent}% 100%)"><strong>${completed}<span style="font-weight:400;color:#cfdded"> / ${tasks.length}</span></strong><small>COMPLETED</small></div></div></div>
     <div class="day-strip">${Array.from({length:7},(_,i)=>first+i).map(d=>{const date=addDays(state.surgeryDate,d);return `<button data-day="${d}" class="${d===state.day?'active':''}" aria-label="Care for ${formatDate(date,{weekday:'long',month:'long',day:'numeric',year:'numeric'})}"><span>${formatDate(date,{weekday:'short'}).toUpperCase()}</span><strong>${formatDate(date,{day:'numeric'})}</strong><small>${formatDate(date,{month:'short'}).toUpperCase()}</small></button>`;}).join('')}</div>
     <div class="care-date-controls"><button data-day="${Math.max(0,state.day-1)}" aria-label="Previous day">←</button><label for="care-date">Jump to date</label><input type="date" id="care-date" min="${state.surgeryDate}" value="${currentDate()}"><button data-day="${state.day+1}" aria-label="Next day">→</button></div>
     <div class="content-pad">${milestones.length===1?`<button class="milestone-banner" data-go="milestones"><span class="banner-icon">${icon('flag')}</span><span><small>TODAY’S MILESTONE</small><strong>${esc(milestones[0].title)}</strong></span><span>↗</span></button>`:milestones.length>1?`<details class="daily-milestones"><summary class="milestone-banner"><span class="banner-icon">${icon('flag')}</span><span><small>TODAY’S MILESTONES</small><strong>${milestones.length} moments in your care plan</strong></span><span>⌄</span></summary><div>${milestones.map(m=>`<p><strong>${esc(m.title)}</strong><br><small>${esc(m.description)}</small></p>`).join('')}<button class="section-link" data-go="milestones">View all milestones →</button></div></details>`:''}
-    <div class="section-heading"><h3>Your daily care</h3><span>${tasks.length} scheduled ${tasks.length===1?'step':'steps'}</span></div>${[...groups].map(([time,items])=>`<div class="time-label">${icon('clock')} ${time.toUpperCase()}</div>${items.map(taskCard).join('')}`).join('')||'<p class="small-copy">No routine tasks scheduled for this day.</p>'}
-    ${optional.length?`<div class="optional-heading"><h3>Only if needed</h3><p>Optional opportunities are separate from routine progress.</p></div>${optional.map(taskCard).join('')}`:''}
+    <div class="section-heading"><h3>Your daily care</h3><span>${tasks.length} scheduled${optional.length?` · ${optional.length} optional`:''}</span></div>${[...groups].map(([time,items])=>`<div class="time-label">${icon('clock')} ${time.toUpperCase()}</div>${items.map(taskCard).join('')}`).join('')||'<p class="small-copy">No tasks scheduled for this day.</p>'}
     <button class="secondary" data-go="milestones" style="margin-top:20px">View all milestones →</button></div>`;
 }
 function noPlanScreen(){return `<div class="page-heading"><p class="eyebrow">YOUR PERSONAL CARE PLAN</p><h2>Start with<br>your surgery date.</h2><p>Complete staff setup and generate the selected plan to see the care scheduled for each day.</p></div><div class="content-pad"><button class="primary" data-go="setup">Open staff setup <span>→</span></button></div>`;}
 function taskCard(t) {
   const done=state.done.has(t.occurrenceId);
-  return `<div class="task ${done?'done':''}"><span class="task-icon ${t.tone}">${icon(t.icon)}</span><button class="task-main" data-detail="${esc(t.occurrenceId)}"><strong>${t.name}</strong><small>${t.kind==='optional'?formatTime(t.time)+' · ':''}${esc(t.instructions)}</small></button><button class="complete" data-complete="${esc(t.occurrenceId)}" aria-label="${done?'Undo completion of':'Mark complete:'} ${t.name} ${formatTime(t.time)}" aria-pressed="${done}">${done?icon('check'):''}</button></div>`;
+  return `<div class="task ${done?'done':''}"><span class="task-icon ${t.tone}">${icon(t.icon)}</span><button class="task-main" data-detail="${esc(t.occurrenceId)}"><strong>${t.name}</strong>${t.kind==='optional'?'<span class="optional-badge">Optional · if needed</span>':''}<small>${esc(t.instructions)}</small></button><button class="complete" data-complete="${esc(t.occurrenceId)}" aria-label="${done?'Undo completion of':'Mark complete:'} ${t.name} ${formatTime(t.time)}${t.kind==='optional'?' — optional, if needed':''}" aria-pressed="${done}">${done?icon('check'):''}</button></div>`;
 }
 function renderSetup() { return setupView({state,esc,icon,dateAt}); }
 function renderMilestones() { return milestoneView({state,config:state.hasPlan?planConfig():null,icon,esc,noPlanScreen}); }
