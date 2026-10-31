@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12253e">
+  <meta name="description" content="A visual prototype of guided aftercare for Cosmedica patients.">
+  <title>Cosmedica Care — Scheduling Review</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%2312253e'/%3E%3Ctext x='8' y='29' font-size='28' font-family='Arial' font-weight='bold' fill='%23c7f15c'%3EC%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" type="module"></script>
+</head>
+<body>
+  <div class="studio">
+    <aside class="presentation-rail">
+      <a class="wordmark" href="#daily" aria-label="Cosmedica Care home"><span>DR. ACAR</span>COSMEDICA<span class="wordmark-care">CARE / PATIENT EXPERIENCE</span></a>
+      <div class="rail-intro"><p class="eyebrow lime"><span class="live-dot"></span> SCHEDULING REVIEW · 03</p><h1>Care beyond<br>the clinic<span class="lime">.</span></h1><p>A clear plan.<br>A little confidence.<br>Every single day.</p></div>
+      <nav class="scene-nav" aria-label="Preview screens">
+        <button data-scene="setup"><span class="scene-number">01</span><span>Staff setup<small>Build the plan together</small></span><span class="nav-arrow">↗</span></button>
+        <button data-scene="daily" class="active"><span class="scene-number">02</span><span>Daily care<small>One day at a time</small></span><span class="nav-arrow">↗</span></button>
+        <button data-scene="milestones"><span class="scene-number">03</span><span>Milestones<small>The moments that matter</small></span><span class="nav-arrow">↗</span></button>
+        <button data-scene="products"><span class="scene-number">04</span><span>Refills & follow-ups<small>Keep the care going</small></span><span class="nav-arrow">↗</span></button>
+      </nav>
+      <div class="rail-footer"><a href="review.html" target="_blank" rel="noopener">Review 33 scheduling rules ↗</a><span>Dr. Levent Acar · Istanbul</span></div>
+    </aside>
+    <main class="preview-stage">
+      <div class="stage-top"><span><span class="small-dot"></span> LIVE SCHEDULING PREVIEW</span><span>CHECKPOINT 3 OF 5</span></div>
+      <div class="stage-body">
+        <section class="device" aria-label="Phone app preview">
+          <div class="device-status"><span>9:41</span><div class="camera"></div><span class="status-icons" aria-label="Full signal and battery">▮▮▮ <span class="battery"></span></span></div>
+          <div class="phone-header"><button class="phone-brand" data-go="daily" aria-label="Go to daily care">COSMEDICA<span>CARE</span></button><button class="avatar" data-go="setup" aria-label="Open patient setup">AC</button></div>
+          <div id="phone-content" class="phone-content" tabindex="-1"></div>
+          <nav class="bottom-nav" aria-label="Patient navigation"></nav>
+          <div class="home-indicator"></div>
+          <div id="dialog-root"></div>
+        </section>
+        <aside class="review-panel">
+          <p class="eyebrow">THE EXPERIENCE</p><h2 id="review-title">Your day.<br>Made clear.</h2><p id="review-description">The next step is always obvious. Care tasks, progress, and milestones each have their own place.</p>
+          <div class="review-divider"></div>
+          <div class="design-note"><span class="note-index">01</span><div><strong>Confidence in contrast</strong><p>Deep navy. Clear white. Bright accents with a purpose.</p></div></div>
+          <div class="design-note"><span class="note-index">02</span><div><strong>Care at a glance</strong><p>Readable instructions and generous tap targets.</p></div></div>
+          <div class="palette" aria-label="Design palette"><span style="background:#12253e" title="Navy"></span><span style="background:#2160ee" title="Blue"></span><span style="background:#c7f15c" title="Lime"></span><span style="background:#f78054" title="Coral"></span><span style="background:#ffffff" title="White"></span></div>
+          <div class="checkpoint-note"><strong>For your scheduling review</strong><p>All 33 v7 items are available. Select a surgery date, generate a plan, and inspect the changing days. Saving progress comes in checkpoint 4.</p><a class="review-link" href="review.html" target="_blank" rel="noopener">Rules and test results ↗</a></div>
+          <button class="text-button" id="reset-preview">Reset preview <span>↺</span></button>
+        </aside>
+      </div>
+      <footer class="stage-footer"><span>01 Scope agreed ✓</span><span>02 Design approved ✓</span><span class="current">03 Scheduling review <span class="small-dot"></span></span><span>04 Interactions</span><span>05 Walkthrough</span></footer>
+    </main>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
