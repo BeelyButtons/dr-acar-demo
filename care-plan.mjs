@@ -1,12 +1,13 @@
 // Calendar-only scheduling. No personal completion records or fixed surgery date.
 const DAY = 86400000;
 export const STAGES = ['Early recovery', 'Ongoing care', 'Follow-ups'];
+export const USE_MODES = Object.freeze({SCHEDULED:'scheduled',IF_NEEDED:'if_needed'});
 const define = (id, name, stage, icon, tone, start, duration, frequency, instructions, extra = {}) =>
-  ({id, name, sourceName: name, stage, icon, tone, start, duration, frequency, instructions, ...extra});
+  ({id, name, sourceName: name, stage, icon, tone, start, duration, frequency, instructions, kind:'routine',defaultUseMode:USE_MODES.SCHEDULED,...extra});
 
 export const CATALOG = [
   define('surgery','Hair transplantation',0,'calendar','navy','Day 0','One day','Once','Hair transplantation on the selected surgery date.',{kind:'milestone'}),
-  define('paracetamol','Paracetamol',0,'pill','coral','Day 0 evening; day 1','Through day 1','Day 1: 6 AM, 10 AM, 2 PM, 6 PM','If needed for pain: 1 tablet. Follow the prescribed dose limit.',{kind:'optional'}),
+  define('paracetamol','Paracetamol',0,'pill','coral','Day 0 evening; day 1','Through day 1','Day 1: 6 AM, 10 AM, 2 PM, 6 PM','If needed for pain: 1 tablet. Follow the prescribed dose limit.',{defaultUseMode:USE_MODES.IF_NEEDED}),
   define('saline','Saline Spray',0,'drop','blue','Day 0 evening','Through day 8','Every 2 hours, 6 AM–10 PM','3–6 sprays to implanted areas. No need to wake from sleep.'),
   define('sleep','Sleeping position',0,'moon','navy','Night of day 0','Nights 0–6; milestone day 7','Nightly at 10 PM','Sleep on your back at 45° with a neck pillow.'),
   define('omeprazole','Omeprazol (omeprazole)',0,'pill','lime','Day 1','8 days (days 1–8)','7:30 AM, before breakfast','20 mg, 1 capsule before breakfast.'),
@@ -79,7 +80,24 @@ function normalize(plan) {
     if(!ALL_IDS.includes(id))throw new Error('Unknown finished item.');
     parseDate(date);
   }
-  return {...plan,ids};
+  const useModes=Object.fromEntries(CATALOG.map(t=>[t.id,t.defaultUseMode]));
+  for(const [id,mode] of Object.entries(plan.useModes||{})){
+    if(!ALL_IDS.includes(id))throw new Error(`Unknown care item use mode: ${id}`);
+    if(!Object.values(USE_MODES).includes(mode))throw new Error(`Invalid use mode for ${id}`);
+    useModes[id]=mode;
+  }
+  return {...plan,ids,useModes};
+}
+
+// A serializable patient-plan snapshot. Staff editing and durable storage are checkpoint 4.
+export function createPatientPlan(config){
+  const plan=normalize(config);
+  return {schemaVersion:1,surgeryDate:plan.surgeryDate,included:[...plan.ids],
+    exclusions:{...plan.exclusions},finishedOn:{...plan.finishedOn},useModes:{...plan.useModes}};
+}
+export function dispositionsForOccurrence(occurrence){
+  if(occurrence.kind==='milestone')return [];
+  return occurrence.useMode===USE_MODES.IF_NEEDED?['not_completed','completed','skipped']:['not_completed','completed'];
 }
 
 export function scheduleForDate(plan, careDate) {
@@ -91,8 +109,10 @@ export function scheduleForDate(plan, careDate) {
   function emit(id,time=null,instructions=null,phase='routine',kind=null) {
     if(!p.ids.has(id)||(p.finishedOn?.[id]&&careDate>=p.finishedOn[id]))return;
     const item=CATALOG.find(t=>t.id===id);
-    events.push({...item,itemId:id,date:careDate,day,time,phase,kind:kind||item.kind||'routine',
-      instructions:instructions||item.instructions,occurrenceId:`${id}:${careDate}:${time??'any'}:${phase}`});
+    const event={...item,itemId:id,date:careDate,day,time,phase,kind:kind||item.kind,
+      useMode:p.useModes[id],instructions:instructions||item.instructions,occurrenceId:`${id}:${careDate}:${time??'any'}:${phase}`};
+    event.availableDispositions=dispositionsForOccurrence(event);
+    events.push(event);
   }
   if(day===0)emit('surgery',null,`Hair transplantation on ${formatDate(s)}.`,'surgery');
   if(day===0)emit('paracetamol',1080);

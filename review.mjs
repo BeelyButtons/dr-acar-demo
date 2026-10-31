@@ -8,7 +8,7 @@ async function loadReport(){
   document.querySelector('#correction').textContent=report.correction;
   document.querySelector('#source-decisions').innerHTML=report.decisions.map(d=>`<li>${esc(d)}</li>`).join('');
   document.querySelector('#source-hash').textContent=report.sha256?`Source fingerprint (SHA-256): ${report.sha256}`:'The detailed source audit is kept in the private project repository.';
-  document.querySelector('#rule-table').innerHTML=report.items.map(t=>`<tr><td>${t.name}<small>${t.instructions}</small></td><td>${STAGES[t.stage]}</td><td>${t.start}</td><td>${t.duration}</td><td>${t.frequency}</td><td>${t.referenceCount} occurrences<small>Daily Tracker rows ${t.sourceFirstRow}–${t.sourceLastRow}</small></td></tr>`).join('');
+  document.querySelector('#rule-table').innerHTML=report.items.map(t=>`<tr><td>${t.name}<small>${t.instructions}</small></td><td>${STAGES[t.stage]}</td><td>${t.defaultUseMode==='if_needed'?'If needed':'Scheduled'}</td><td>${t.start}</td><td>${t.duration}</td><td>${t.frequency}</td><td>${t.referenceCount} occurrences<small>Daily Tracker rows ${t.sourceFirstRow}–${t.sourceLastRow}</small></td></tr>`).join('');
 }
 function examples(surgeryDate){
   const cases=[
@@ -24,7 +24,7 @@ function examples(surgeryDate){
   const plan={surgeryDate},milestones=milestonesForPlan(plan);
   document.querySelector('#daily-examples').innerHTML=`<div class="examples">${cases.map(([title,date],index)=>{
     const events=scheduleForDate(plan,date),today=milestones.filter(m=>m.date===date);
-    return `<details ${index===1?'open':''}><summary>${title} · ${formatDate(date)}<small>Day ${daysBetween(surgeryDate,date)} · ${events.length} scheduled occurrences</small></summary>${today.map(m=>`<div class="phase-note">${m.title}</div>`).join('')}${events.map(t=>`<div class="event-row"><time>${formatTime(t.time)}</time><strong>${t.name}<small>${t.kind==='optional'?'Only if needed':t.kind==='milestone'?'Milestone':t.phase.replaceAll('-',' ')}</small></strong><span>${esc(t.instructions)}</span></div>`).join('')||'<p class="example-empty">No scheduled occurrences.</p>'}</details>`;
+    return `<details ${index===1?'open':''}><summary>${title} · ${formatDate(date)}<small>Day ${daysBetween(surgeryDate,date)} · ${events.length} scheduled occurrences</small></summary>${today.map(m=>`<div class="phase-note">${m.title}</div>`).join('')}${events.map(t=>`<div class="event-row"><time>${formatTime(t.time)}</time><strong>${t.name}<small>${t.useMode==='if_needed'?'Only if needed':t.kind==='milestone'?'Milestone':t.phase.replaceAll('-',' ')}</small></strong><span>${esc(t.instructions)}</span></div>`).join('')||'<p class="example-empty">No scheduled occurrences.</p>'}</details>`;
   }).join('')}</div>`;
 }
 document.querySelector('#review-date-form').addEventListener('submit',e=>{e.preventDefault();try{examples(document.querySelector('#review-date').value);}catch(error){document.querySelector('#daily-examples').textContent=error.message;}});

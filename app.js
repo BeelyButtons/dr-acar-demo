@@ -1,6 +1,6 @@
 // Checkpoint 3: v7 scheduling and a reviewable daily preview. Persistence is checkpoint 4.
 import { setupView, milestoneView } from './plan-views.mjs';
-import { CATALOG, ALL_IDS, addDays, addMonths, daysBetween, formatDate, formatTime, scheduleForDate, milestonesForPlan, recommendationsForPlan } from './care-plan.mjs';
+import { CATALOG, ALL_IDS, createPatientPlan, addDays, addMonths, daysBetween, formatDate, formatTime, scheduleForDate, milestonesForPlan, recommendationsForPlan } from './care-plan.mjs';
 const icons = {
   calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2"/>',
   flag: '<path d="M5 21V4m0 1c5-5 9 5 14 0v10c-5 5-9-5-14 0"/>',
@@ -18,9 +18,10 @@ const icons = {
 };
 const icon = (name) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.spark}</svg>`;
 const esc = (value) => String(value).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state = { scene:'setup', setupStep:0, stage:0, name:'', surgeryDate:'', day:1, hasPlan:false, done:new Set(), excluded:{}, included:new Set(ALL_IDS), finishedOn:{}, filter:'all' };
+const defaultUseModes=()=>Object.fromEntries(CATALOG.map(t=>[t.id,t.defaultUseMode]));
+const state = { scene:'setup', setupStep:0, stage:0, name:'', surgeryDate:'', day:1, hasPlan:false, done:new Set(), excluded:{}, included:new Set(ALL_IDS), finishedOn:{}, useModes:defaultUseModes(),filter:'all' };
 const treatments = CATALOG;
-const planConfig = () => ({surgeryDate:state.surgeryDate,included:[...state.included],exclusions:state.excluded,finishedOn:state.finishedOn});
+const planConfig = () => createPatientPlan({surgeryDate:state.surgeryDate,included:[...state.included],exclusions:state.excluded,finishedOn:state.finishedOn,useModes:state.useModes});
 const currentDate = () => addDays(state.surgeryDate,state.day);
 const currentEvents = () => state.hasPlan ? scheduleForDate(planConfig(),currentDate()) : [];
 const reviewCopy = {
@@ -55,8 +56,8 @@ function render() {
 }
 function renderDaily() {
   if(!state.hasPlan)return noPlanScreen();
-  const events=currentEvents(),tasks=events.filter(t=>!['milestone','optional'].includes(t.kind));
-  const optional=events.filter(t=>t.kind==='optional');
+  const events=currentEvents(),tasks=events.filter(t=>t.kind!=='milestone'&&t.useMode==='scheduled');
+  const optional=events.filter(t=>t.kind!=='milestone'&&t.useMode==='if_needed');
   const visibleTasks=events.filter(t=>t.kind!=='milestone');
   const milestones=milestonesForPlan(planConfig()).filter(m=>m.day===state.day);
   const completed=tasks.filter(t=>state.done.has(t.occurrenceId)).length;
@@ -74,7 +75,7 @@ function renderDaily() {
 function noPlanScreen(){return `<div class="page-heading"><p class="eyebrow">YOUR PERSONAL CARE PLAN</p><h2>Start with<br>your surgery date.</h2><p>Complete staff setup and generate the selected plan to see the care scheduled for each day.</p></div><div class="content-pad"><button class="primary" data-go="setup">Open staff setup <span>→</span></button></div>`;}
 function taskCard(t) {
   const done=state.done.has(t.occurrenceId);
-  return `<div class="task ${done?'done':''}"><span class="task-icon ${t.tone}">${icon(t.icon)}</span><button class="task-main" data-detail="${esc(t.occurrenceId)}"><strong>${t.name}</strong>${t.kind==='optional'?'<span class="optional-badge">Optional · if needed</span>':''}<small>${esc(t.instructions)}</small></button><button class="complete" data-complete="${esc(t.occurrenceId)}" aria-label="${done?'Undo completion of':'Mark complete:'} ${t.name} ${formatTime(t.time)}${t.kind==='optional'?' — optional, if needed':''}" aria-pressed="${done}">${done?icon('check'):''}</button></div>`;
+  return `<div class="task ${done?'done':''}"><span class="task-icon ${t.tone}">${icon(t.icon)}</span><button class="task-main" data-detail="${esc(t.occurrenceId)}"><strong>${t.name}</strong>${t.useMode==='if_needed'?'<span class="optional-badge">Optional · if needed</span>':''}<small>${esc(t.instructions)}</small></button><button class="complete" data-complete="${esc(t.occurrenceId)}" aria-label="${done?'Undo completion of':'Mark complete:'} ${t.name} ${formatTime(t.time)}${t.useMode==='if_needed'?' — optional, if needed':''}" aria-pressed="${done}">${done?icon('check'):''}</button></div>`;
 }
 function renderSetup() { return setupView({state,esc,icon,dateAt}); }
 function renderMilestones() { return milestoneView({state,config:state.hasPlan?planConfig():null,icon,esc,noPlanScreen}); }
@@ -121,7 +122,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.product){showDetails(b.dataset.product);return;}
   if(b.dataset.ask){const t=treatments.find(t=>t.id===b.dataset.ask);dialog(`<p class="eyebrow">ABOUT ${t.name.toUpperCase()}</p><h2 id="dialog-title">What would you<br>like to ask?</h2><label for="question-text">Your question</label><textarea id="question-text" placeholder="Write your question here…"></textarea><p class="small-copy">Question submission and saving come in checkpoint 4.</p><button class="primary" data-go="questions">Preview my questions <span>→</span></button>`);return;}
   if(b.hasAttribute('data-close')){closeDialog();return;}
-  if(b.id==='reset-preview'){state.surgeryDate='';state.name='';state.setupStep=0;state.stage=0;state.day=1;state.done.clear();state.excluded={};state.included=new Set(ALL_IDS);state.finishedOn={};state.hasPlan=false;state.filter='all';switchScene('setup');toast('Preview reset. Surgery date is empty.');}
+  if(b.id==='reset-preview'){state.surgeryDate='';state.name='';state.setupStep=0;state.stage=0;state.day=1;state.done.clear();state.excluded={};state.included=new Set(ALL_IDS);state.finishedOn={};state.useModes=defaultUseModes();state.hasPlan=false;state.filter='all';switchScene('setup');toast('Preview reset. Surgery date is empty.');}
 });
 document.addEventListener('submit',e=>{
   if(e.target.id!=='setup-form')return;
